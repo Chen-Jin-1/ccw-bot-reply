@@ -1,4 +1,6 @@
-import md5 from './md5.mjs';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const md5 = require('./md5.cjs');
 
 const SECRET_KEY = process.env.CCW_SECRET_KEY;
 const PROJECT_ID = process.env.CCW_PROJECT_ID;
