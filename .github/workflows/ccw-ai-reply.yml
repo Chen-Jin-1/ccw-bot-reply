@@ -1,0 +1,25 @@
+name: CCW AI Reply
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ccw-ai-reply
+  cancel-in-progress: false
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run
+        env:
+          CCW_COOKIE: ${{ secrets.CCW_COOKIE }}
+          CCW_SECRET_KEY: ${{ secrets.CCW_SECRET_KEY }}
+          CCW_PROJECT_ID: ${{ secrets.CCW_PROJECT_ID }}
+        run: node scripts/ccw-ai-reply.mjs
