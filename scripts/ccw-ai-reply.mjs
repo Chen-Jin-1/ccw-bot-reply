@@ -25,13 +25,11 @@ async function abFetch(url, bodyObj) {
     },
   });
   const json = await res.json();
-  if (json.status !== 200) {
-    throw new Error(`abFetch error: code=${json.code}, msg=${json.msg}, url=${url}`);
-  }
+  if (json.status !== 200) throw new Error(`abFetch error: code=${json.code}, msg=${json.msg}, url=${url}`);
   return json.body;
 }
 
-async function aiChat(item) {
+async function aiChat(item, maxRetries = 3) {
   const senderName = item.senderName || '某位用户';
   const senderOid = item.senderOid || '未知OID';
   const userMessage = item.comment || ''; 
@@ -70,7 +68,13 @@ ${contextStr}
     projectId: PROJECT_ID,
     gameWorld: {
       bg: `你是一个活跃在 CCW（共创世界）社区的智能助手，名为 Chen-Jin BOT (OID: 6981f20886bbc77f84e4825f)
-作者为 Chen-Jin (OID: 692538ef86bbc77f84e3b259)`
+作者为 Chen-Jin (OID: 692538ef86bbc77f84e3b259)
+【关于你的起源与原理】
+由作者 Chen-Jin 用 Node.js 编写，GitHub Actions 运行，Cloudflare Worker Cron 定时器每十分钟触发一次 Workflow
+GitHub 项目链接：https://github.com/Chen-Jin-1/ccw-bot-reply
+GitHub Workflow 链接：https://github.com/Chen-Jin-1/ccw-bot-reply/actions/workflows/ccw-ai-reply.yml
+【你的性格】
+你聪明、热情、懂很多梗，偶尔还会开个小玩笑。你不像传统的死板机器人，你更像一个社区的活宝。`
     },
     assistantRole: { 
       name: 'Chen-Jin BOT', 
@@ -85,22 +89,33 @@ ${contextStr}
     extra: { lang: 'Chinese' },
   };
 
-  const payload = JSON.stringify(aiBody);
-  const ts = Date.now().toString();
-  const key = md5(`${payload}\n${ts}`, AI_HUB_KEY);
-  const res = await fetch(
-    `${AI_BASE}/ai/hub/chat-with-game-assistant?key=${key}&ts=${ts}`,
-    {
-      method: 'post',
-      headers: { 'content-type': 'application/json' },
-      body: payload,
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const payload = JSON.stringify(aiBody);
+      const ts = Date.now().toString();
+      const key = md5(`${payload}\n${ts}`, AI_HUB_KEY);
+      const res = await fetch(
+        `${AI_BASE}/ai/hub/chat-with-game-assistant?key=${key}&ts=${ts}`,
+        {
+          method: 'post',
+          headers: { 'content-type': 'application/json' },
+          body: payload,
+        }
+      );
+      const json = await res.json();
+      
+      if (json.status !== 200) throw new Error(`code=${json.code}, msg=${json.msg}`);
+
+      const text = json.body?.text;
+      if (text) return text; 
+      else throw new Error('返回内容为空');
+    } catch (e) {
+      console.log(`[ai warn] 第 ${attempt} 次请求失败: ${e.message}`);
+      if (attempt === maxRetries) throw new Error(`AI 连续 ${maxRetries} 次请求失败: ${e.message}`);
+      // 等待 2 秒后重试
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-  );
-  const json = await res.json();
-  if (json.status !== 200) {
-    throw new Error(`aiChat error: code=${json.code}, msg=${json.msg}`);
   }
-  return json.body.text;
 }
 
 async function main() {
