@@ -115,7 +115,7 @@ async function main() {
   if (list.length === 0) return;
 
   // 2. 用当前时间减去 15 分钟，作为过滤老消息的基准线（15分钟是为了容错）
-  const FIFTEEN_MINUTES = 15 * 60 * 1000;
+  const FIFTEEN_MINUTES = 10 * 60 * 1000;
   const timeThreshold = Date.now() - FIFTEEN_MINUTES;
 
   // 3. 只保留最新的一批消息
