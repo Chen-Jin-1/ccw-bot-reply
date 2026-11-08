@@ -135,7 +135,7 @@ async function main() {
 
     let reply;
     try {
-      reply = await aiChat(commentText);
+      reply = await aiChat(item);
     } catch (e) {
       console.error(`[ai error] id=${commentId}`, e.message);
       continue; // 单条失败不影响其他条
