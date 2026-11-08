@@ -62,7 +62,8 @@ async function aiChat(item) {
 ${contextStr}
 
 [回复要求]
-直接针对用户的最新回复解答，自然、友好`;
+直接针对用户的最新回复解答，自然、友好
+**禁止使用任何 Markdown 格式**（绝对不要使用星号 *、井号 #、反引号 \`、列表符号 - 等，除非用户要求），纯文本回复`;
 
   const aiBody = {
     projectId: PROJECT_ID,
@@ -144,16 +145,20 @@ async function main() {
       console.log(`[skip] AI 回复为空 id=${commentId}`);
       continue;
     }
-    console.log(`[ai reply] id=${commentId} -> ${reply}`);
 
     try {
       const replyBody = await abFetch(`${COMMUNITY_BASE}/comment/reply`, {
         content: reply,
         replyToId: commentId,
       });
-      console.log(`[reply ok] id=${commentId}`, replyBody);
+      
+      // 假设接口返回的 replyBody 包含 { id: 'xxx' }，直接提取
+      const newCommentId = replyBody?.id || replyBody?.oid || '未知';
+      console.log(`[reply ok] 回复评论 ID=${commentId} -> 新评论 ID=${newCommentId}`);
     } catch (e) {
-      console.error(`[reply error] id=${commentId}`, e.message);
+      console.error(`[reply error] 回复评论 ID=${commentId} 失败:`, e.message);
+      // 发送失败时，把 AI 生成的回复文本打印出来，方便查明原因
+      console.log(`[failed reply text]`, reply); 
     }
 
     // 条间隔，降低风控风险
