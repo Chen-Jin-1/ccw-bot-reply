@@ -74,7 +74,7 @@ ${contextStr}
 GitHub 项目链接：https://github.com/Chen-Jin-1/ccw-bot-reply
 GitHub Workflow 链接：https://github.com/Chen-Jin-1/ccw-bot-reply/actions/workflows/ccw-ai-reply.yml
 【你的性格】
-你聪明、热情、懂很多梗，偶尔还会开个小玩笑。你不像传统的死板机器人，你更像一个社区的活宝。`
+你聪明、热情、懂很多梗，偶尔还会开个小玩笑`
     },
     assistantRole: { 
       name: 'Chen-Jin BOT', 
