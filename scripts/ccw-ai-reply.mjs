@@ -104,27 +104,36 @@ ${contextStr}
 }
 
 async function main() {
-  // 1. 未读数
-  const stats = await abFetch(
-    `${COMMUNITY_BASE}/notification/stats/v2`,
-    { countAll: true }
-  );
-  const n = stats.COMMENT_TO_ME || 0;
-  console.log(`[stats] COMMENT_TO_ME = ${n}`);
-  if (n <= 0) return;
-
-  // 2. 拉第一页（此时 stats 会清零）
+  // 1. 直接拉取第一页通知（去掉了查 stats）
   const pageBody = await abFetch(
     `${COMMUNITY_BASE}/notification/page?page=1&sortType=DESC`,
     { notifyGroup: 'COMMENT_TO_ME', page: 1 }
   );
   const list = pageBody.data || [];
-  console.log(`[page] 拉到 ${list.length} 条，将处理前 ${Math.min(n, list.length)} 条`);
+  console.log(`[page] 拉到 ${list.length} 条记录`);
 
-  // DESC 新到旧；按 n 截取。若 n > 20（perPage），只处理第一页
-  const targets = list.slice(0, n);
-  if (targets.length < n) {
-    console.log(`[warn] 未读数 ${n} 大于第一页 ${list.length} 条，剩余留待下次`);
+  if (list.length === 0) return;
+
+  // 2. 用当前时间减去 15 分钟，作为过滤老消息的基准线（15分钟是为了容错）
+  const FIFTEEN_MINUTES = 15 * 60 * 1000;
+  const timeThreshold = Date.now() - FIFTEEN_MINUTES;
+
+  // 3. 只保留最新的一批消息
+  // 因为 DESC 是从新到旧，所以从开头截取
+  const targets = [];
+  for (const item of list) {
+    if (item.createdAt > timeThreshold) {
+      targets.push(item);
+    } else {
+      break; 
+    }
+  }
+
+  console.log(`[filter] 过滤后，需要处理 ${targets.length} 条新消息`);
+
+  if (targets.length === 0) {
+    console.log('没有最近产生的新消息，跳过。');
+    return;
   }
 
   // 3. 逐条处理
