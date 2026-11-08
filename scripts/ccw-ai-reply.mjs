@@ -150,10 +150,8 @@ async function main() {
   //   return;
   // }
 
-  targets = list[0]; // 临时改动
-
   // 3. 逐条处理
-  for (const item of targets) {
+  for (const item of [list[0]]) {
     const commentText = item.comment || item.message || '';
     const commentId = item.triggeredById;
     const senderName = item.senderName;
