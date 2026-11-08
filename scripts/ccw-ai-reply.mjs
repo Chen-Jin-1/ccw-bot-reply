@@ -145,14 +145,14 @@ async function main() {
       console.log(`[skip] 缺 triggeredById:`, item);
       continue;
     }
-    console.log(`[comment] id=${commentId} sender=${senderName} text=${commentText}`);
+    console.log(`[comment] id=${commentId} sender=${senderName}`);
 
     let reply;
     try {
       reply = await aiChat(item);
     } catch (e) {
       console.error(`[ai error] id=${commentId}`, e.message);
-      continue; // 单条失败不影响其他条
+      continue;
     }
     if (!reply) {
       console.log(`[skip] AI 回复为空 id=${commentId}`);
@@ -165,7 +165,6 @@ async function main() {
         replyToId: commentId,
       });
       
-      // 假设接口返回的 replyBody 包含 { id: 'xxx' }，直接提取
       const newCommentId = replyBody?.id || replyBody?.oid || '未知';
       console.log(`[reply ok] 回复评论 ID=${commentId} -> 新评论 ID=${newCommentId}`);
     } catch (e) {
