@@ -151,6 +151,8 @@ async function main() {
     return;
   }
 
+  targets = list[0];
+
   // 3. 逐条处理
   for (const item of targets) {
     const commentText = item.comment || item.message || '';
