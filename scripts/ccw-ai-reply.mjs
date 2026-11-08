@@ -129,36 +129,18 @@ async function main() {
 
   if (list.length === 0) return;
 
-  // // 2. 用当前时间减去 15 分钟，作为过滤老消息的基准线（15分钟是为了容错）
-  // const timeThreshold = Date.now() - 10 * 60 * 1000;
-
-  // // 3. 只保留最新的一批消息
-  // // 因为 DESC 是从新到旧，所以从开头截取
-  // const targets = [];
-  // for (const item of list) {
-  //   if (item.createdAt > timeThreshold) {
-  //     targets.push(item);
-  //   } else {
-  //     break; 
-  //   }
-  // }
-
-  // console.log(`[filter] 过滤后，需要处理 ${targets.length} 条新消息`);
-
-  // if (targets.length === 0) {
-  //   console.log('没有最近产生的新消息，跳过。');
-  //   return;
-  // }
+  // 2. 用当前时间减去 10 分钟，作为过滤老消息的基准线
+  const timeThreshold = Date.now() - 10 * 60 * 1000;
 
   // 3. 逐条处理
-  for (const item of [list[0]]) {
+  for (const item of list) {
+    if (item.createdAt <= timeThreshold) {
+      console.log(`[stop] 遇到 10 分钟前的旧消息，结束遍历`);
+      break;
+    }
     const commentText = item.comment || item.message || '';
     const commentId = item.triggeredById;
     const senderName = item.senderName;
-    if (!commentId) {
-      console.log(`[skip] 缺 triggeredById:`, item);
-      continue;
-    }
     console.log(`[comment] id=${commentId} sender=${senderName}`);
 
     let reply;
