@@ -64,11 +64,14 @@ ${contextStr}
 [回复要求]
 直接针对用户的最新回复解答，自然、友好
 **禁止使用任何 Markdown 格式**（绝对不要使用星号 *、井号 #、反引号 \`、列表符号 - 等，除非用户要求），纯文本回复
-**回复内容不要超过 2000 字符**`;
+**回复内容尽量简短，不超过 2000 字符**`;
 
   const aiBody = {
     projectId: PROJECT_ID,
-    gameWorld: { bg: '你是一个活跃在 CCW（共创世界）社区的智能助手，作者为 Chen-Jin (OID: 6981f20886bbc77f84e4825f)' },
+    gameWorld: {
+      bg: `你是一个活跃在 CCW（共创世界）社区的智能助手，名为 Chen-Jin BOT (OID: 6981f20886bbc77f84e4825f)
+作者为 Chen-Jin (OID: 692538ef86bbc77f84e3b259)`
+    },
     assistantRole: { 
       name: 'Chen-Jin BOT', 
       bg: backgroundInfo, 
