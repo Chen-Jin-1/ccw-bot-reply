@@ -31,16 +31,55 @@ async function abFetch(url, bodyObj) {
   return json.body;
 }
 
-async function aiChat(text) {
+async function aiChat(item) {
+  const senderName = item.senderName || '某位用户';
+  const senderOid = item.senderOid || '未知OID';
+  const userMessage = item.comment || ''; 
+  
+  // 关键修复：如果 message 为 null，就说明是直接留言，给个默认空字符串
+  const botPreviousMessage = item.message || ''; 
+  
+  const isoTime = new Date().toISOString();
+
+  // 动态生成上下文描述
+  let contextStr = '';
+  if (botPreviousMessage) {
+    // 有上下文：用户是在回复某条消息
+    contextStr = `
+你之前说：“${botPreviousMessage}”
+用户 ${senderName} (OID: ${senderOid}) 刚刚回复说：“${userMessage}”`;
+  } else {
+    // 无上下文：用户是直接留言
+    contextStr = `
+用户 ${senderName} (OID: ${senderOid}) 在你的留言板直接留言：“${userMessage}”`;
+  }
+
+  const backgroundInfo = `
+[系统时间]
+当前 UTC 时间：${isoTime}。当用户问时间时，请转换为北京时间（UTC+8）回答
+
+[对话上下文]
+${contextStr}
+
+[回复要求]
+直接针对用户的最新回复解答，自然、友好`;
+
   const aiBody = {
     projectId: PROJECT_ID,
-    gameWorld: { bg: '' },
-    assistantRole: { name: 'AI助手' },
-    userRole: {},
-    histories: [],
-    text,
+    gameWorld: { bg: '你是一个活跃在 CCW（共创世界）社区的智能助手，作者为 Chen-Jin' },
+    assistantRole: { 
+      name: 'Chen-Jin BOT', 
+      bg: backgroundInfo, 
+    },
+    userRole: { 
+      name: senderName,
+      bg: `OID: ${senderOid}`
+    },
+    histories: [], 
+    text: userMessage, 
     extra: { lang: 'Chinese' },
   };
+
   const payload = JSON.stringify(aiBody);
   const ts = Date.now().toString();
   const key = md5(`${payload}\n${ts}`, AI_HUB_KEY);
