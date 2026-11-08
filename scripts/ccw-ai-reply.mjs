@@ -129,29 +129,28 @@ async function main() {
 
   if (list.length === 0) return;
 
-  // 2. 用当前时间减去 15 分钟，作为过滤老消息的基准线（15分钟是为了容错）
-  const FIFTEEN_MINUTES = 10 * 60 * 1000;
-  const timeThreshold = Date.now() - FIFTEEN_MINUTES;
+  // // 2. 用当前时间减去 15 分钟，作为过滤老消息的基准线（15分钟是为了容错）
+  // const timeThreshold = Date.now() - 10 * 60 * 1000;
 
-  // 3. 只保留最新的一批消息
-  // 因为 DESC 是从新到旧，所以从开头截取
-  const targets = [];
-  for (const item of list) {
-    if (item.createdAt > timeThreshold) {
-      targets.push(item);
-    } else {
-      break; 
-    }
-  }
+  // // 3. 只保留最新的一批消息
+  // // 因为 DESC 是从新到旧，所以从开头截取
+  // const targets = [];
+  // for (const item of list) {
+  //   if (item.createdAt > timeThreshold) {
+  //     targets.push(item);
+  //   } else {
+  //     break; 
+  //   }
+  // }
 
-  console.log(`[filter] 过滤后，需要处理 ${targets.length} 条新消息`);
+  // console.log(`[filter] 过滤后，需要处理 ${targets.length} 条新消息`);
 
-  if (targets.length === 0) {
-    console.log('没有最近产生的新消息，跳过。');
-    return;
-  }
+  // if (targets.length === 0) {
+  //   console.log('没有最近产生的新消息，跳过。');
+  //   return;
+  // }
 
-  targets = list[0];
+  targets = list[0]; // 临时改动
 
   // 3. 逐条处理
   for (const item of targets) {
