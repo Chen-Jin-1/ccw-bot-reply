@@ -119,28 +119,43 @@ GitHub Workflow 链接：https://github.com/Chen-Jin-1/ccw-bot-reply/actions/wor
 }
 
 async function main() {
-  // 1. 直接拉取第一页通知（去掉了查 stats）
+  // 1. 拉取第一页未读通知（使用 v3 新接口）
   const pageBody = await abFetch(
-    `${COMMUNITY_BASE}/notification/page?page=1&sortType=DESC`,
-    { notifyGroup: 'COMMENT_TO_ME', page: 1 }
+    `${COMMUNITY_BASE}/notification/v3/page`,
+    { group: 'REPLY', pageSize: 20 }
   );
-  const list = pageBody.data || [];
+  
+  // 注意：新版接口列表字段叫 items，并且带了 readToken
+  const list = pageBody.items || [];
+  const readToken = pageBody.readToken;
   console.log(`[page] 拉到 ${list.length} 条记录`);
 
   if (list.length === 0) return;
 
-  // 2. 用当前时间减去 10 分钟，作为过滤老消息的基准线
-  const timeThreshold = Date.now() - 10 * 60 * 1000;
+  const unreadIdsToMark = [];
+  let processedCount = 0;
 
-  // 3. 逐条处理
+  // 2. 逐条处理（从新到旧）
   for (const item of list) {
-    if (item.createdAt <= timeThreshold) {
-      console.log(`[stop] 遇到 10 分钟前的旧消息，结束遍历`);
+    // 遇到已读，直接停止遍历（因为 DESC 排序，后面的肯定也是已读）
+    if (item.readState === 'READ') {
+      console.log(`[stop] 遇到已读消息，结束遍历`);
       break;
     }
-    const commentText = item.comment || item.message || '';
-    const commentId = item.triggeredById;
+
+    // 把未读的 ID 收集起来准备标已读
+    unreadIdsToMark.push(item.id);
+
+    const commentText = item.comment || '';
+    // 注意：在新版里，被回复的原评论 ID 可能是 triggeredById 或 target.commentId
+    const commentId = item.triggeredById || item.target?.commentId; 
     const senderName = item.senderName;
+    
+    if (!commentId) {
+      console.log(`[skip] 缺少评论 ID`);
+      continue;
+    }
+
     console.log(`[comment] id=${commentId} sender=${senderName}`);
 
     let reply;
@@ -150,28 +165,42 @@ async function main() {
       console.error(`[ai error] id=${commentId}`, e.message);
       continue;
     }
-    if (!reply) {
-      console.log(`[skip] AI 回复为空 id=${commentId}`);
-      continue;
-    }
+    if (!reply) continue;
 
     try {
       const replyBody = await abFetch(`${COMMUNITY_BASE}/comment/reply`, {
         content: reply,
         replyToId: commentId,
       });
-      
-      const newCommentId = replyBody?.id || replyBody?.oid || '未知';
+      const newCommentId = replyBody?.id || '未知';
       console.log(`[reply ok] 回复评论 ID=${commentId} -> 新评论 ID=${newCommentId}`);
+      
+      processedCount++;
+      
+      // 处理完一条，间隔一下
+      await new Promise((r) => setTimeout(r, 1500));
     } catch (e) {
       console.error(`[reply error] 回复评论 ID=${commentId} 失败:`, e.message);
-      // 发送失败时，把 AI 生成的回复文本打印出来，方便查明原因
-      console.log(`[failed reply text]`, reply); 
     }
-
-    // 条间隔，降低风控风险
-    await new Promise((r) => setTimeout(r, 1500));
   }
+
+  // 3. 批量标记已读（保护机制：如果真处理了或者收集到了未读，才去请求接口）
+  if (unreadIdsToMark.length > 0) {
+    console.log(`[mark_read] 标记 ${unreadIdsToMark.length} 条消息为已读...`);
+    try {
+      const markRes = await abFetch(`${COMMUNITY_BASE}/notification/v3/mark_read`, {
+        group: 'REPLY',
+        filter: 'ALL',
+        readToken: readToken,
+        ids: unreadIdsToMark
+      });
+      console.log(`[mark_read] 成功:`, JSON.stringify(markRes));
+    } catch (e) {
+      console.error(`[mark_read error] 标记已读失败:`, e.message);
+    }
+  }
+
+  console.log(`完成：本次共处理 ${processedCount} 条未读消息`);
 }
 
 main().catch((e) => {
