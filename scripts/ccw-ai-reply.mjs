@@ -137,25 +137,36 @@ async function main() {
 
   // 2. 逐条处理（从新到旧）
   for (const item of list) {
-    // 遇到已读，直接停止遍历（因为 DESC 排序，后面的肯定也是已读）
     if (item.readState === 'READ') {
       console.log(`[stop] 遇到已读消息，结束遍历`);
       break;
     }
 
-    // 把未读的 ID 收集起来准备标已读
+    // 收集所有未读 ID，无论是否能回复
     unreadIdsToMark.push(item.id);
 
-    const commentText = item.comment || '';
-    // 注意：在新版里，被回复的原评论 ID 可能是 triggeredById 或 target.commentId
-    const commentId = item.triggeredById || item.target?.commentId; 
-    const senderName = item.senderName;
-    
-    if (!commentId) {
-      console.log(`[skip] 缺少评论 ID`);
+    // 1. 拦截幽灵通知（原评论已删）
+    if (item.target?.type === 'NONE' || item.actions?.reply === false) {
+      console.log(`[skip] 原评论已删除或无法回复 (id=${item.id})，跳过 AI 调用`);
       continue;
     }
 
+    // 2. 拦截缺少目标 ID
+    const commentId = item.target?.commentId || item.triggeredById; 
+    if (!commentId) {
+      console.log(`[skip] 缺少回复目标 ID (id=${item.id})`);
+      continue;
+    }
+
+    // 3. 拦截自己的消息（防自问自答）
+    if (String(item.senderOid) === '6981f20886bbc77f84e4825f') {
+      console.log(`[skip] 是自己发的消息 (id=${item.id})`);
+      continue;
+    }
+
+    // 只有以上都过了，才真正开始处理消息和 AI 请求
+    const commentText = item.comment || '';
+    const senderName = item.senderName;
     console.log(`[comment] id=${commentId} sender=${senderName}`);
 
     let reply;
